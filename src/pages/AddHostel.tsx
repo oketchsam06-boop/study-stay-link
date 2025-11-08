@@ -23,7 +23,7 @@ const hostelSchema = z.object({
 });
 
 export default function AddHostel() {
-  const { user, profile } = useAuth();
+  const { user, role } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [verifying, setVerifying] = useState(false);
@@ -45,11 +45,11 @@ export default function AddHostel() {
       return;
     }
 
-    if (profile?.role !== "landlord") {
+    if (role !== "landlord") {
       toast.error("Only landlords can add hostels");
       navigate("/");
     }
-  }, [user, profile]);
+  }, [user, role]);
 
   const verifyPlotNumber = async () => {
     if (!formData.plot_number.trim()) {

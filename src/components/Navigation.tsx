@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Building2, LogOut, Home, LayoutDashboard } from "lucide-react";
 
 export default function Navigation() {
-  const { user, profile, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -31,7 +31,7 @@ export default function Navigation() {
                   Browse Hostels
                 </Button>
               </Link>
-              <Link to={profile?.role === "landlord" ? "/landlord/dashboard" : "/student/dashboard"}>
+              <Link to={role === "landlord" ? "/landlord/dashboard" : "/student/dashboard"}>
                 <Button variant="ghost" size="sm">
                   <LayoutDashboard className="mr-2 h-4 w-4" />
                   Dashboard

@@ -13,7 +13,7 @@ import type { Database } from "@/integrations/supabase/types";
 type Hostel = Database["public"]["Tables"]["hostels"]["Row"];
 
 export default function LandlordDashboard() {
-  const { user, profile } = useAuth();
+  const { user, role } = useAuth();
   const navigate = useNavigate();
   const [hostels, setHostels] = useState<Hostel[]>([]);
   const [loading, setLoading] = useState(true);
@@ -24,13 +24,13 @@ export default function LandlordDashboard() {
       return;
     }
 
-    if (profile?.role !== "landlord") {
+    if (role !== "landlord") {
       navigate("/student/dashboard");
       return;
     }
 
     fetchHostels();
-  }, [user, profile]);
+  }, [user, role]);
 
   const fetchHostels = async () => {
     const { data, error } = await supabase

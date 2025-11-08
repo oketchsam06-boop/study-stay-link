@@ -16,7 +16,7 @@ type Hostel = Database["public"]["Tables"]["hostels"]["Row"];
 export default function HostelDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, role } = useAuth();
   const [hostel, setHostel] = useState<Hostel | null>(null);
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState(false);
@@ -50,7 +50,7 @@ export default function HostelDetail() {
       return;
     }
 
-    if (profile?.role !== "student") {
+    if (role !== "student") {
       toast.error("Only students can book hostels");
       return;
     }

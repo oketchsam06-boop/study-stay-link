@@ -14,7 +14,7 @@ type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
 };
 
 export default function StudentDashboard() {
-  const { user, profile } = useAuth();
+  const { user, role } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,13 +25,13 @@ export default function StudentDashboard() {
       return;
     }
 
-    if (profile?.role !== "student") {
+    if (role !== "student") {
       navigate("/landlord/dashboard");
       return;
     }
 
     fetchBookings();
-  }, [user, profile]);
+  }, [user, role]);
 
   const fetchBookings = async () => {
     const { data, error } = await supabase
