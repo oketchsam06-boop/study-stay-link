@@ -4,7 +4,18 @@ import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { MapPin, DoorOpen, CheckCircle2, Loader2, ArrowLeft, Plus, BedDouble } from "lucide-react";
+import { MapPin, DoorOpen, CheckCircle2, Loader2, ArrowLeft, Plus, BedDouble, Pencil, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -41,6 +52,7 @@ export default function HostelDetail() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingRoomId, setBookingRoomId] = useState<string | null>(null);
+  const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -116,6 +128,20 @@ export default function HostelDetail() {
       toast.error("Booking failed. Please try again.");
     } finally {
       setBookingRoomId(null);
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    setDeletingRoomId(roomId);
+    try {
+      const { error } = await supabase.from("rooms").delete().eq("id", roomId);
+      if (error) throw error;
+      setRooms((prev) => prev.filter((r) => r.id !== roomId));
+      toast.success("Room deleted successfully");
+    } catch {
+      toast.error("Failed to delete room");
+    } finally {
+      setDeletingRoomId(null);
     }
   };
 
@@ -288,6 +314,51 @@ export default function HostelDetail() {
                         )}
                         Book Now - KSh 50
                       </Button>
+                    )}
+
+                    {isOwner && (
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => navigate(`/landlord/hostel/${hostel.id}/room/${room.id}/edit`)}
+                        >
+                          <Pencil className="mr-1 h-3 w-3" />
+                          Edit
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="flex-1"
+                              disabled={deletingRoomId === room.id}
+                            >
+                              {deletingRoomId === room.id ? (
+                                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                              ) : (
+                                <Trash2 className="mr-1 h-3 w-3" />
+                              )}
+                              Delete
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete {room.room_number}?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete this room.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => handleDeleteRoom(room.id)}>
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     )}
                   </div>
                 </Card>
