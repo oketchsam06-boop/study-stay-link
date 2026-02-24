@@ -171,7 +171,7 @@ export default function LandlordDashboard() {
                         className="flex-1"
                         onClick={() => navigate(`/hostels/${hostel.id}`)}
                       >
-                        View
+                        Manage Rooms
                       </Button>
                       <Button
                         variant="destructive"

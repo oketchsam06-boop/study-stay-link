@@ -11,6 +11,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Booking = Database["public"]["Tables"]["bookings"]["Row"] & {
   hostels: Database["public"]["Tables"]["hostels"]["Row"];
+  rooms: { room_number: string; price_per_month: number } | null;
 };
 
 export default function StudentDashboard() {
@@ -36,7 +37,7 @@ export default function StudentDashboard() {
   const fetchBookings = async () => {
     const { data, error } = await supabase
       .from("bookings")
-      .select("*, hostels(*)")
+      .select("*, hostels(*), rooms(room_number, price_per_month)")
       .eq("student_id", user?.id)
       .order("booked_at", { ascending: false });
 
@@ -127,9 +128,14 @@ export default function StudentDashboard() {
                       </Badge>
                     </div>
 
-                    <div className="pt-2 border-t border-border">
+                    <div className="pt-2 border-t border-border space-y-1">
+                      {booking.rooms && (
+                        <p className="text-sm font-medium">
+                          Room: {booking.rooms.room_number}
+                        </p>
+                      )}
                       <p className="text-sm text-muted-foreground">
-                        Rent: KSh {booking.hostels?.rent_per_month.toLocaleString()}/month
+                        Rent: KSh {(booking.rooms?.price_per_month ?? booking.hostels?.rent_per_month)?.toLocaleString()}/month
                       </p>
                     </div>
                   </div>
