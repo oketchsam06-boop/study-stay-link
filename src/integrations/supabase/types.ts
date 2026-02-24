@@ -22,6 +22,7 @@ export type Database = {
           mpesa_transaction_id: string | null
           payment_amount: number
           payment_status: string
+          room_id: string | null
           student_id: string
         }
         Insert: {
@@ -31,6 +32,7 @@ export type Database = {
           mpesa_transaction_id?: string | null
           payment_amount: number
           payment_status?: string
+          room_id?: string | null
           student_id: string
         }
         Update: {
@@ -40,6 +42,7 @@ export type Database = {
           mpesa_transaction_id?: string | null
           payment_amount?: number
           payment_status?: string
+          room_id?: string | null
           student_id?: string
         }
         Relationships: [
@@ -48,6 +51,13 @@ export type Database = {
             columns: ["hostel_id"]
             isOneToOne: false
             referencedRelation: "hostels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "rooms"
             referencedColumns: ["id"]
           },
           {
@@ -73,6 +83,7 @@ export type Database = {
           occupied_rooms: number
           plot_number: string
           rent_per_month: number
+          title_deed_image: string | null
           total_rooms: number
           updated_at: string
         }
@@ -89,6 +100,7 @@ export type Database = {
           occupied_rooms?: number
           plot_number: string
           rent_per_month: number
+          title_deed_image?: string | null
           total_rooms: number
           updated_at?: string
         }
@@ -105,6 +117,7 @@ export type Database = {
           occupied_rooms?: number
           plot_number?: string
           rent_per_month?: number
+          title_deed_image?: string | null
           total_rooms?: number
           updated_at?: string
         }
@@ -144,6 +157,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      rooms: {
+        Row: {
+          created_at: string
+          description: string | null
+          hostel_id: string
+          id: string
+          images: string[] | null
+          is_vacant: boolean
+          price_per_month: number
+          room_number: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          hostel_id: string
+          id?: string
+          images?: string[] | null
+          is_vacant?: boolean
+          price_per_month: number
+          room_number: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          hostel_id?: string
+          id?: string
+          images?: string[] | null
+          is_vacant?: boolean
+          price_per_month?: number
+          room_number?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rooms_hostel_id_fkey"
+            columns: ["hostel_id"]
+            isOneToOne: false
+            referencedRelation: "hostels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {

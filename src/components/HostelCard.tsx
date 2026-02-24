@@ -1,19 +1,17 @@
 import { Link } from "react-router-dom";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, DoorOpen, DoorClosed } from "lucide-react";
+import { MapPin, DoorOpen } from "lucide-react";
 import type { Database } from "@/integrations/supabase/types";
 
 type Hostel = Database["public"]["Tables"]["hostels"]["Row"];
 
 interface HostelCardProps {
   hostel: Hostel;
+  vacantRoomCount?: number;
 }
 
-export default function HostelCard({ hostel }: HostelCardProps) {
-  const availableRooms = hostel.total_rooms - hostel.occupied_rooms;
-  const isFull = availableRooms === 0;
-
+export default function HostelCard({ hostel, vacantRoomCount = 0 }: HostelCardProps) {
   return (
     <Link to={`/hostels/${hostel.id}`}>
       <Card className="group overflow-hidden border-border bg-gradient-to-b from-card to-muted/20 shadow-[var(--shadow-card)] hover:shadow-[var(--shadow-hover)] transition-[var(--transition-smooth)] cursor-pointer">
@@ -34,16 +32,9 @@ export default function HostelCard({ hostel }: HostelCardProps) {
         <div className="p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-semibold text-lg line-clamp-1">{hostel.name}</h3>
-            {isFull ? (
-              <Badge variant="destructive" className="shrink-0">
-                <DoorClosed className="mr-1 h-3 w-3" />
-                Full
-              </Badge>
-            ) : (
-              <Badge className="shrink-0 bg-primary">
-                {availableRooms} Available
-              </Badge>
-            )}
+            <Badge className={`shrink-0 ${vacantRoomCount > 0 ? "bg-primary" : "bg-destructive"}`}>
+              {vacantRoomCount > 0 ? `${vacantRoomCount} Vacant` : "Full"}
+            </Badge>
           </div>
 
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
@@ -57,11 +48,10 @@ export default function HostelCard({ hostel }: HostelCardProps) {
             </p>
           )}
 
-          <div className="flex items-center justify-between pt-2 border-t border-border">
-            <span className="text-2xl font-bold text-primary">
-              KSh {hostel.rent_per_month.toLocaleString()}
+          <div className="pt-2 border-t border-border">
+            <span className="text-sm text-muted-foreground">
+              View rooms →
             </span>
-            <span className="text-sm text-muted-foreground">/month</span>
           </div>
         </div>
       </Card>

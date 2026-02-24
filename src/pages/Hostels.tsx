@@ -14,6 +14,7 @@ type Hostel = Database["public"]["Tables"]["hostels"]["Row"];
 export default function Hostels() {
   const [searchParams] = useSearchParams();
   const [hostels, setHostels] = useState<Hostel[]>([]);
+  const [vacantCounts, setVacantCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
   const [sortBy, setSortBy] = useState("recent");
@@ -26,12 +27,7 @@ export default function Hostels() {
     setLoading(true);
     let query = supabase.from("hostels").select("*");
 
-    // Apply sorting
-    if (sortBy === "price-low") {
-      query = query.order("rent_per_month", { ascending: true });
-    } else if (sortBy === "price-high") {
-      query = query.order("rent_per_month", { ascending: false });
-    } else if (sortBy === "distance") {
+    if (sortBy === "distance") {
       query = query.order("distance_from_gate", { ascending: true, nullsFirst: false });
     } else {
       query = query.order("created_at", { ascending: false });
@@ -41,6 +37,17 @@ export default function Hostels() {
 
     if (data && !error) {
       setHostels(data);
+      // Fetch vacant room counts
+      const { data: rooms } = await supabase
+        .from("rooms")
+        .select("hostel_id, is_vacant")
+        .eq("is_vacant", true);
+
+      const counts: Record<string, number> = {};
+      rooms?.forEach((r: any) => {
+        counts[r.hostel_id] = (counts[r.hostel_id] || 0) + 1;
+      });
+      setVacantCounts(counts);
     }
     setLoading(false);
   };
@@ -66,7 +73,6 @@ export default function Hostels() {
           </p>
         </div>
 
-        {/* Search and Filters */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -86,14 +92,11 @@ export default function Hostels() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="recent">Most Recent</SelectItem>
-              <SelectItem value="price-low">Price: Low to High</SelectItem>
-              <SelectItem value="price-high">Price: High to Low</SelectItem>
               <SelectItem value="distance">Nearest to Gate</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        {/* Hostels Grid */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[...Array(6)].map((_, i) => (
@@ -107,7 +110,11 @@ export default function Hostels() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredHostels.map((hostel) => (
-              <HostelCard key={hostel.id} hostel={hostel} />
+              <HostelCard
+                key={hostel.id}
+                hostel={hostel}
+                vacantRoomCount={vacantCounts[hostel.id] || 0}
+              />
             ))}
           </div>
         )}
