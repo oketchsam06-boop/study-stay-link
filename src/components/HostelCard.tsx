@@ -33,7 +33,7 @@ export default function HostelCard({ hostel, vacantRoomCount = 0 }: HostelCardPr
           <div className="flex items-start justify-between gap-2">
             <h3 className="font-semibold text-lg line-clamp-1">{hostel.name}</h3>
             <Badge className={`shrink-0 ${vacantRoomCount > 0 ? "bg-primary" : "bg-destructive"}`}>
-              {vacantRoomCount > 0 ? `${vacantRoomCount} Vacant` : "Full"}
+              {vacantRoomCount > 0 ? `${vacantRoomCount} Vacant` : "Fully Booked"}
             </Badge>
           </div>
 

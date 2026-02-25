@@ -202,8 +202,8 @@ export default function HostelDetail() {
                   <div className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-lg">{room.room_number}</h3>
-                      <Badge className={room.is_vacant ? "bg-primary" : "bg-destructive"}>
-                        {room.is_vacant ? "Vacant" : "Occupied"}
+      <Badge className={room.is_vacant ? "bg-primary" : "bg-destructive"}>
+                        {room.is_vacant ? "Vacant" : "Booked"}
                       </Badge>
                     </div>
                     {room.description && <p className="text-sm text-muted-foreground line-clamp-2">{room.description}</p>}

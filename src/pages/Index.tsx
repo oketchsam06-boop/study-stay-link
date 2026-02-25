@@ -68,7 +68,7 @@ export default function Index() {
             </div>
             <h3 className="font-semibold text-xl">Verified Listings</h3>
             <p className="text-muted-foreground">
-              All hostels verified against County Lands records. No fake listings.
+              Only hostels listed by verified landlords.
             </p>
           </div>
 
@@ -120,9 +120,42 @@ export default function Index() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-muted/30 py-8">
-        <div className="container px-4 text-center text-sm text-muted-foreground">
-          <p>© 2025 HostelLink. Connecting students with verified hostels.</p>
+      <footer className="border-t bg-muted/30 py-12">
+        <div className="container px-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* About */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-lg">HostelLink</h4>
+              <p className="text-sm text-muted-foreground">
+                HostelLink is a platform that connects university students with verified, affordable hostels near campus. We make finding and booking accommodation easy, safe, and transparent.
+              </p>
+            </div>
+
+            {/* Quick Links */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-lg">Quick Links</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li><Link to="/hostels" className="hover:text-primary transition-colors">Browse Hostels</Link></li>
+                <li><Link to="/auth?signup=true" className="hover:text-primary transition-colors">Sign Up as Student</Link></li>
+                <li><Link to="/auth?signup=true&role=landlord" className="hover:text-primary transition-colors">List Your Hostel</Link></li>
+                <li><Link to="/auth" className="hover:text-primary transition-colors">Sign In</Link></li>
+              </ul>
+            </div>
+
+            {/* Contact */}
+            <div className="space-y-3">
+              <h4 className="font-semibold text-lg">Contact Us</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>📧 support@hostellink.co.ke</li>
+                <li>📞 +254 700 000 000</li>
+                <li>📍 Nairobi, Kenya</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-border text-center text-sm text-muted-foreground">
+            <p>© {new Date().getFullYear()} HostelLink. Connecting students with verified hostels.</p>
+          </div>
         </div>
       </footer>
     </div>
