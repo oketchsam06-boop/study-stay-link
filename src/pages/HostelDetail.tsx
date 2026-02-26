@@ -65,7 +65,7 @@ export default function HostelDetail() {
     if (role !== "student") { toast.error("Only students can book rooms"); return; }
     setBookingRoomId(room.id);
     try {
-      // Fresh check from DB to prevent race conditions
+      // Fresh check from DB to prevent stale UI actions
       const { data: freshRoom } = await supabase.from("rooms").select("is_vacant").eq("id", room.id).single();
       if (!freshRoom || !freshRoom.is_vacant) {
         toast.error("This room has already been booked");
@@ -73,25 +73,29 @@ export default function HostelDetail() {
         setBookingRoomId(null);
         return;
       }
-      // Mark room as booked first to prevent double-booking
-      const { error: updateError } = await supabase.from("rooms").update({ is_vacant: false }).eq("id", room.id);
-      if (updateError) throw updateError;
-      // Update local state immediately
-      setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: false } : r));
+
       const { error } = await supabase.from("bookings").insert({
         student_id: user.id, hostel_id: hostel!.id, room_id: room.id,
         payment_amount: 50, payment_status: "completed", mpesa_transaction_id: `MOCK${Date.now()}`,
       });
+
       if (error) {
-        // Rollback room status if booking insert fails
-        await supabase.from("rooms").update({ is_vacant: true }).eq("id", room.id);
-        setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: true } : r));
+        if (error.message?.includes("ROOM_ALREADY_BOOKED")) {
+          setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: false } : r));
+          toast.error("This room was just booked by another student");
+          return;
+        }
         throw error;
       }
+
+      setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: false } : r));
       toast.success("Room booked successfully!");
       navigate("/student/dashboard");
-    } catch { toast.error("Booking failed. Please try again."); }
-    finally { setBookingRoomId(null); }
+    } catch {
+      toast.error("Booking failed. Please try again.");
+    } finally {
+      setBookingRoomId(null);
+    }
   };
 
   const handleDeleteRoom = async (roomId: string) => {
