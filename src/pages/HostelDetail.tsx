@@ -63,15 +63,31 @@ export default function HostelDetail() {
   const handleBookRoom = async (room: Room) => {
     if (!user) { toast.error("Please sign in to book a room"); navigate("/auth"); return; }
     if (role !== "student") { toast.error("Only students can book rooms"); return; }
-    if (!room.is_vacant) { toast.error("This room is no longer vacant"); return; }
     setBookingRoomId(room.id);
     try {
+      // Fresh check from DB to prevent race conditions
+      const { data: freshRoom } = await supabase.from("rooms").select("is_vacant").eq("id", room.id).single();
+      if (!freshRoom || !freshRoom.is_vacant) {
+        toast.error("This room has already been booked");
+        setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: false } : r));
+        setBookingRoomId(null);
+        return;
+      }
+      // Mark room as booked first to prevent double-booking
+      const { error: updateError } = await supabase.from("rooms").update({ is_vacant: false }).eq("id", room.id);
+      if (updateError) throw updateError;
+      // Update local state immediately
+      setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: false } : r));
       const { error } = await supabase.from("bookings").insert({
         student_id: user.id, hostel_id: hostel!.id, room_id: room.id,
         payment_amount: 50, payment_status: "completed", mpesa_transaction_id: `MOCK${Date.now()}`,
       });
-      if (error) throw error;
-      await supabase.from("rooms").update({ is_vacant: false }).eq("id", room.id);
+      if (error) {
+        // Rollback room status if booking insert fails
+        await supabase.from("rooms").update({ is_vacant: true }).eq("id", room.id);
+        setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: true } : r));
+        throw error;
+      }
       toast.success("Room booked successfully!");
       navigate("/student/dashboard");
     } catch { toast.error("Booking failed. Please try again."); }
