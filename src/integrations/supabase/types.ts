@@ -16,34 +16,61 @@ export type Database = {
     Tables: {
       bookings: {
         Row: {
+          admin_resolution: string | null
           booked_at: string
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          confirmed_at: string | null
+          deposit_amount: number
+          dispute_reason: string | null
+          escrow_status: string
           hostel_id: string
           id: string
           mpesa_transaction_id: string | null
           payment_amount: number
           payment_status: string
+          platform_fee: number
           room_id: string | null
           student_id: string
+          total_paid: number | null
         }
         Insert: {
+          admin_resolution?: string | null
           booked_at?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          confirmed_at?: string | null
+          deposit_amount?: number
+          dispute_reason?: string | null
+          escrow_status?: string
           hostel_id: string
           id?: string
           mpesa_transaction_id?: string | null
           payment_amount: number
           payment_status?: string
+          platform_fee?: number
           room_id?: string | null
           student_id: string
+          total_paid?: number | null
         }
         Update: {
+          admin_resolution?: string | null
           booked_at?: string
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          confirmed_at?: string | null
+          deposit_amount?: number
+          dispute_reason?: string | null
+          escrow_status?: string
           hostel_id?: string
           id?: string
           mpesa_transaction_id?: string | null
           payment_amount?: number
           payment_status?: string
+          platform_fee?: number
           room_id?: string | null
           student_id?: string
+          total_paid?: number | null
         }
         Relationships: [
           {
@@ -157,6 +184,53 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      receipts: {
+        Row: {
+          booking_id: string
+          deposit_amount: number
+          id: string
+          issued_at: string
+          payment_method: string
+          platform_fee: number
+          receipt_number: string
+          status: string
+          student_id: string
+          total_paid: number
+        }
+        Insert: {
+          booking_id: string
+          deposit_amount: number
+          id?: string
+          issued_at?: string
+          payment_method?: string
+          platform_fee: number
+          receipt_number: string
+          status?: string
+          student_id: string
+          total_paid: number
+        }
+        Update: {
+          booking_id?: string
+          deposit_amount?: number
+          id?: string
+          issued_at?: string
+          payment_method?: string
+          platform_fee?: number
+          receipt_number?: string
+          status?: string
+          student_id?: string
+          total_paid?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rooms: {
         Row: {

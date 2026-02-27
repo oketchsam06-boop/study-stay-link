@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Navigation from "@/components/Navigation";
 import ImageLightbox from "@/components/ImageLightbox";
+import BookingConfirmDialog from "@/components/BookingConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -14,6 +15,8 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
+
+const PLATFORM_FEE = 50;
 
 interface Hostel {
   id: string; name: string; location: string; description: string | null;
@@ -34,6 +37,8 @@ export default function HostelDetail() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookingRoomId, setBookingRoomId] = useState<string | null>(null);
+  const [bookingRoom, setBookingRoom] = useState<Room | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [deletingRoomId, setDeletingRoomId] = useState<string | null>(null);
   const [markingVacantId, setMarkingVacantId] = useState<string | null>(null);
   const [lightboxOpen, setLightboxOpen] = useState(false);
@@ -60,36 +65,71 @@ export default function HostelDetail() {
     setLightboxOpen(true);
   };
 
-  const handleBookRoom = async (room: Room) => {
+  const handleBookRoomClick = (room: Room) => {
     if (!user) { toast.error("Please sign in to book a room"); navigate("/auth"); return; }
     if (role !== "student") { toast.error("Only students can book rooms"); return; }
+    setBookingRoom(room);
+    setConfirmDialogOpen(true);
+  };
+
+  const handleConfirmBooking = async () => {
+    if (!bookingRoom || !user || !hostel) return;
+    const room = bookingRoom;
     setBookingRoomId(room.id);
     try {
-      // Fresh check from DB to prevent stale UI actions
+      // Fresh vacancy check
       const { data: freshRoom } = await supabase.from("rooms").select("is_vacant").eq("id", room.id).single();
       if (!freshRoom || !freshRoom.is_vacant) {
         toast.error("This room has already been booked");
         setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: false } : r));
+        setConfirmDialogOpen(false);
         setBookingRoomId(null);
         return;
       }
 
-      const { error } = await supabase.from("bookings").insert({
-        student_id: user.id, hostel_id: hostel!.id, room_id: room.id,
-        payment_amount: 50, payment_status: "completed", mpesa_transaction_id: `MOCK${Date.now()}`,
-      });
+      const depositAmount = room.price_per_month;
+      const totalPaid = depositAmount + PLATFORM_FEE;
+
+      // Insert booking — trigger handles escrow_status + room vacancy atomically
+      const { data: booking, error } = await supabase.from("bookings").insert({
+        student_id: user.id,
+        hostel_id: hostel.id,
+        room_id: room.id,
+        deposit_amount: depositAmount,
+        platform_fee: PLATFORM_FEE,
+        payment_amount: totalPaid,
+        payment_status: "completed",
+        mpesa_transaction_id: `MOCK${Date.now()}`,
+      }).select().single();
 
       if (error) {
         if (error.message?.includes("ROOM_ALREADY_BOOKED")) {
           setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: false } : r));
           toast.error("This room was just booked by another student");
+          setConfirmDialogOpen(false);
           return;
         }
         throw error;
       }
 
+      // Create receipt
+      if (booking) {
+        const receiptNumber = `HL-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
+        await supabase.from("receipts").insert({
+          booking_id: booking.id,
+          student_id: user.id,
+          receipt_number: receiptNumber,
+          deposit_amount: depositAmount,
+          platform_fee: PLATFORM_FEE,
+          total_paid: totalPaid,
+          payment_method: "mpesa",
+          status: "deposit_held",
+        });
+      }
+
       setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: false } : r));
-      toast.success("Room booked successfully!");
+      setConfirmDialogOpen(false);
+      toast.success("Room booked! Deposit held in escrow.");
       navigate("/student/dashboard");
     } catch {
       toast.error("Booking failed. Please try again.");
@@ -136,6 +176,18 @@ export default function HostelDetail() {
     <div className="min-h-screen bg-background">
       <Navigation />
       <ImageLightbox images={lightboxImages} initialIndex={lightboxIndex} open={lightboxOpen} onOpenChange={setLightboxOpen} />
+
+      {bookingRoom && (
+        <BookingConfirmDialog
+          open={confirmDialogOpen}
+          onOpenChange={(open) => { setConfirmDialogOpen(open); if (!open) setBookingRoom(null); }}
+          roomNumber={bookingRoom.room_number}
+          depositAmount={bookingRoom.price_per_month}
+          platformFee={PLATFORM_FEE}
+          loading={bookingRoomId === bookingRoom.id}
+          onConfirm={handleConfirmBooking}
+        />
+      )}
 
       <div className="container px-4 py-8 max-w-6xl">
         <Button variant="ghost" onClick={() => navigate("/hostels")} className="mb-6">
@@ -222,7 +274,7 @@ export default function HostelDetail() {
                   <div className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="font-semibold text-lg">{room.room_number}</h3>
-      <Badge className={room.is_vacant ? "bg-primary" : "bg-destructive"}>
+                      <Badge className={room.is_vacant ? "bg-primary" : "bg-destructive"}>
                         {room.is_vacant ? "Vacant" : "Booked"}
                       </Badge>
                     </div>
@@ -233,10 +285,19 @@ export default function HostelDetail() {
                     </div>
 
                     {role === "student" && room.is_vacant && (
-                      <Button variant="hero" className="w-full" size="sm" disabled={bookingRoomId === room.id} onClick={() => handleBookRoom(room)}>
-                        {bookingRoomId === room.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Book Now - KSh 50
-                      </Button>
+                      <div className="space-y-2">
+                        <div className="text-xs text-muted-foreground bg-muted rounded p-2">
+                          <div className="flex justify-between"><span>Deposit</span><span>KSh {room.price_per_month.toLocaleString()}</span></div>
+                          <div className="flex justify-between"><span>Platform Fee</span><span>KSh {PLATFORM_FEE}</span></div>
+                          <div className="flex justify-between font-semibold border-t border-border/50 mt-1 pt-1">
+                            <span>Total</span><span>KSh {(room.price_per_month + PLATFORM_FEE).toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <Button variant="hero" className="w-full" size="sm" disabled={bookingRoomId === room.id} onClick={() => handleBookRoomClick(room)}>
+                          {bookingRoomId === room.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                          Book Now — KSh {(room.price_per_month + PLATFORM_FEE).toLocaleString()}
+                        </Button>
+                      </div>
                     )}
 
                     {isOwner && (
