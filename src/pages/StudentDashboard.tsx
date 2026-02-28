@@ -94,12 +94,57 @@ export default function StudentDashboard() {
   const handleConfirmRoom = async (bookingId: string) => {
     setActionId(bookingId);
     try {
+      // Get booking details first
+      const booking = bookings.find((b) => b.id === bookingId);
+      if (!booking) throw new Error("Booking not found");
+
       const { error } = await supabase.from("bookings").update({
         escrow_status: "released_to_landlord",
         confirmed_at: new Date().toISOString(),
       }).eq("id", bookingId);
       if (error) throw error;
-      toast.success("Room confirmed! Deposit released to landlord.");
+
+      // Credit landlord wallet
+      const { data: hostel } = await supabase
+        .from("hostels")
+        .select("landlord_id")
+        .eq("id", booking.hostel_id)
+        .single();
+
+      if (hostel) {
+        // Get or create wallet
+        let { data: wallet } = await supabase
+          .from("wallets")
+          .select("id, balance, total_earned")
+          .eq("landlord_id", hostel.landlord_id)
+          .maybeSingle();
+
+        if (!wallet) {
+          const { data: created } = await supabase
+            .from("wallets")
+            .insert({ landlord_id: hostel.landlord_id })
+            .select("id, balance, total_earned")
+            .single();
+          wallet = created;
+        }
+
+        if (wallet) {
+          await supabase.from("wallet_transactions").insert({
+            wallet_id: wallet.id,
+            booking_id: bookingId,
+            type: "deposit_release",
+            amount: booking.deposit_amount,
+            description: `Deposit from ${booking.hostels?.name} - Room ${booking.rooms?.room_number}`,
+          });
+
+          await supabase.from("wallets").update({
+            balance: wallet.balance + booking.deposit_amount,
+            total_earned: wallet.total_earned + booking.deposit_amount,
+          }).eq("id", wallet.id);
+        }
+      }
+
+      toast.success("Room confirmed! Deposit released to landlord wallet.");
       fetchData();
     } catch { toast.error("Failed to confirm. Please try again."); }
     finally { setActionId(null); }

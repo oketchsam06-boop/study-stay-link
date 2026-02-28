@@ -5,11 +5,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, Plus, MapPin, DoorOpen, Trash2, Calendar, User } from "lucide-react";
+import { Building2, Plus, MapPin, DoorOpen, Trash2, Calendar, User, Wallet } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Database } from "@/integrations/supabase/types";
+import LandlordWallet from "@/components/LandlordWallet";
 
 type Hostel = Database["public"]["Tables"]["hostels"]["Row"];
 
@@ -104,6 +105,9 @@ export default function LandlordDashboard() {
                   {bookings.filter((b) => b.escrow_status === "held_in_escrow").length}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="wallet">
+              <Wallet className="mr-1 h-4 w-4" /> Wallet
             </TabsTrigger>
           </TabsList>
 
@@ -202,6 +206,10 @@ export default function LandlordDashboard() {
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          <TabsContent value="wallet">
+            <LandlordWallet />
           </TabsContent>
         </Tabs>
       </div>
