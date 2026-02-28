@@ -235,34 +235,40 @@ export type Database = {
       rooms: {
         Row: {
           created_at: string
+          deposit_amount: number
           description: string | null
           hostel_id: string
           id: string
           images: string[] | null
           is_vacant: boolean
           price_per_month: number
+          pricing_period: string
           room_number: string
           updated_at: string
         }
         Insert: {
           created_at?: string
+          deposit_amount?: number
           description?: string | null
           hostel_id: string
           id?: string
           images?: string[] | null
           is_vacant?: boolean
           price_per_month: number
+          pricing_period?: string
           room_number: string
           updated_at?: string
         }
         Update: {
           created_at?: string
+          deposit_amount?: number
           description?: string | null
           hostel_id?: string
           id?: string
           images?: string[] | null
           is_vacant?: boolean
           price_per_month?: number
+          pricing_period?: string
           room_number?: string
           updated_at?: string
         }

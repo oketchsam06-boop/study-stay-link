@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { ArrowLeft, Loader2, ImageIcon } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -26,6 +27,8 @@ export default function EditRoom() {
   const [formData, setFormData] = useState({
     room_number: "",
     price_per_month: "",
+    deposit_amount: "",
+    pricing_period: "per_month",
     description: "",
   });
 
@@ -66,6 +69,8 @@ export default function EditRoom() {
     setFormData({
       room_number: roomRes.data.room_number,
       price_per_month: String(roomRes.data.price_per_month),
+      deposit_amount: String(roomRes.data.deposit_amount || 0),
+      pricing_period: roomRes.data.pricing_period || "per_month",
       description: roomRes.data.description || "",
     });
     setExistingImages(roomRes.data.images || []);
@@ -116,6 +121,8 @@ export default function EditRoom() {
         .update({
           room_number: formData.room_number,
           price_per_month: parseFloat(formData.price_per_month),
+          deposit_amount: parseFloat(formData.deposit_amount),
+          pricing_period: formData.pricing_period,
           description: formData.description || null,
           images: imageUrls,
         })
@@ -176,7 +183,27 @@ export default function EditRoom() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price per Month (KSh) *</Label>
+              <Label>Pricing Period *</Label>
+              <RadioGroup
+                value={formData.pricing_period}
+                onValueChange={(v) => setFormData({ ...formData, pricing_period: v })}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="per_month" id="edit_per_month" />
+                  <Label htmlFor="edit_per_month" className="font-normal cursor-pointer">Per Month</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="per_semester" id="edit_per_semester" />
+                  <Label htmlFor="edit_per_semester" className="font-normal cursor-pointer">Per Semester</Label>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="price">
+                Rent {formData.pricing_period === "per_month" ? "(KSh / Month)" : "(KSh / Semester)"} *
+              </Label>
               <Input
                 id="price"
                 type="number"
@@ -185,6 +212,21 @@ export default function EditRoom() {
                 placeholder="e.g., 8000"
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="deposit">Deposit Amount (KSh) *</Label>
+              <Input
+                id="deposit"
+                type="number"
+                value={formData.deposit_amount}
+                onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
+                placeholder="e.g., 5000"
+                required
+              />
+              <p className="text-xs text-muted-foreground">
+                This is the amount students will pay upfront to secure the room.
+              </p>
             </div>
 
             <div className="space-y-2">
