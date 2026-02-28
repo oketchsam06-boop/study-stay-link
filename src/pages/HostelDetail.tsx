@@ -26,7 +26,7 @@ interface Hostel {
 
 interface Room {
   id: string; hostel_id: string; room_number: string; price_per_month: number;
-  is_vacant: boolean; description: string | null; images: string[] | null;
+  deposit_amount: number; is_vacant: boolean; description: string | null; images: string[] | null;
 }
 
 export default function HostelDetail() {
@@ -87,7 +87,7 @@ export default function HostelDetail() {
         return;
       }
 
-      const depositAmount = room.price_per_month;
+      const depositAmount = room.deposit_amount || room.price_per_month;
       const totalPaid = depositAmount + PLATFORM_FEE;
 
       // Insert booking — trigger handles escrow_status + room vacancy atomically
@@ -182,7 +182,7 @@ export default function HostelDetail() {
           open={confirmDialogOpen}
           onOpenChange={(open) => { setConfirmDialogOpen(open); if (!open) setBookingRoom(null); }}
           roomNumber={bookingRoom.room_number}
-          depositAmount={bookingRoom.price_per_month}
+          depositAmount={bookingRoom.deposit_amount || bookingRoom.price_per_month}
           platformFee={PLATFORM_FEE}
           loading={bookingRoomId === bookingRoom.id}
           onConfirm={handleConfirmBooking}
@@ -287,15 +287,15 @@ export default function HostelDetail() {
                     {role === "student" && room.is_vacant && (
                       <div className="space-y-2">
                         <div className="text-xs text-muted-foreground bg-muted rounded p-2">
-                          <div className="flex justify-between"><span>Deposit</span><span>KSh {room.price_per_month.toLocaleString()}</span></div>
+                          <div className="flex justify-between"><span>Deposit</span><span>KSh {(room.deposit_amount || room.price_per_month).toLocaleString()}</span></div>
                           <div className="flex justify-between"><span>Platform Fee</span><span>KSh {PLATFORM_FEE}</span></div>
                           <div className="flex justify-between font-semibold border-t border-border/50 mt-1 pt-1">
-                            <span>Total</span><span>KSh {(room.price_per_month + PLATFORM_FEE).toLocaleString()}</span>
+                            <span>Total</span><span>KSh {((room.deposit_amount || room.price_per_month) + PLATFORM_FEE).toLocaleString()}</span>
                           </div>
                         </div>
                         <Button variant="hero" className="w-full" size="sm" disabled={bookingRoomId === room.id} onClick={() => handleBookRoomClick(room)}>
                           {bookingRoomId === room.id && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                          Book Now — KSh {(room.price_per_month + PLATFORM_FEE).toLocaleString()}
+                          Book Now — KSh {((room.deposit_amount || room.price_per_month) + PLATFORM_FEE).toLocaleString()}
                         </Button>
                       </div>
                     )}
