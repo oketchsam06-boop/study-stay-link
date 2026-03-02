@@ -145,6 +145,19 @@ export default function StudentDashboard() {
       }
 
       toast.success("Room confirmed! Deposit released to landlord wallet.");
+
+      // Fire notification
+      supabase.functions.invoke("send-notification", {
+        body: {
+          type: "deposit_released",
+          booking_id: bookingId,
+          student_id: user?.id,
+          hostel_name: booking.hostels?.name,
+          room_number: booking.rooms?.room_number,
+          deposit_amount: booking.deposit_amount,
+        },
+      }).catch(() => {});
+
       fetchData();
     } catch { toast.error("Failed to confirm. Please try again."); }
     finally { setActionId(null); }
@@ -166,6 +179,22 @@ export default function StudentDashboard() {
       }
 
       toast.success("Booking cancelled. Deposit refunded.");
+
+      // Fire notification
+      const booking = bookings.find((b) => b.id === bookingId);
+      if (booking) {
+        supabase.functions.invoke("send-notification", {
+          body: {
+            type: "booking_cancelled",
+            booking_id: bookingId,
+            student_id: user?.id,
+            hostel_name: booking.hostels?.name,
+            room_number: booking.rooms?.room_number,
+            deposit_amount: booking.deposit_amount,
+          },
+        }).catch(() => {});
+      }
+
       fetchData();
     } catch { toast.error("Failed to cancel. Please try again."); }
     finally { setActionId(null); }

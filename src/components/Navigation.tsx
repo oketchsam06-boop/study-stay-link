@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building2, LogOut, Home, LayoutDashboard, Menu, X } from "lucide-react";
+import { Building2, LogOut, Home, LayoutDashboard, Menu, X, Shield } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 export default function Navigation() {
@@ -24,9 +24,9 @@ export default function Navigation() {
           Browse Hostels
         </Button>
       </Link>
-      <Link to={role === "landlord" ? "/landlord/dashboard" : "/student/dashboard"} onClick={() => setOpen(false)}>
+      <Link to={role === "admin" ? "/admin/dashboard" : role === "landlord" ? "/landlord/dashboard" : "/student/dashboard"} onClick={() => setOpen(false)}>
         <Button variant="ghost" size="sm" className="w-full justify-start">
-          <LayoutDashboard className="mr-2 h-4 w-4" />
+          {role === "admin" ? <Shield className="mr-2 h-4 w-4" /> : <LayoutDashboard className="mr-2 h-4 w-4" />}
           Dashboard
         </Button>
       </Link>

@@ -130,6 +130,21 @@ export default function HostelDetail() {
       setRooms((prev) => prev.map((r) => r.id === room.id ? { ...r, is_vacant: false } : r));
       setConfirmDialogOpen(false);
       toast.success("Room booked! Deposit held in escrow.");
+
+      // Fire notification (non-blocking)
+      supabase.functions.invoke("send-notification", {
+        body: {
+          type: "booking_confirmed",
+          booking_id: booking.id,
+          student_id: user.id,
+          hostel_name: hostel.name,
+          room_number: room.room_number,
+          deposit_amount: depositAmount,
+          platform_fee: PLATFORM_FEE,
+          total_paid: totalPaid,
+        },
+      }).catch(() => {});
+
       navigate("/student/dashboard");
     } catch {
       toast.error("Booking failed. Please try again.");
