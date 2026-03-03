@@ -51,7 +51,7 @@ const escrowLabels: Record<string, string> = {
 };
 
 export default function AdminDashboard() {
-  const { user, role } = useAuth();
+  const { user, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,10 +59,11 @@ export default function AdminDashboard() {
   const [resolutionNote, setResolutionNote] = useState("");
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) { navigate("/auth"); return; }
-    if (role !== "admin") { navigate("/"); return; }
+    if (!roles.includes("admin")) { navigate("/"); return; }
     fetchBookings();
-  }, [user, role]);
+  }, [user, roles, authLoading]);
 
   const fetchBookings = async () => {
     const { data } = await supabase
