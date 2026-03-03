@@ -11,6 +11,7 @@ interface AuthContextType {
   session: Session | null;
   profile: Profile | null;
   role: string | null;
+  roles: string[];
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -22,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,6 +40,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }, 0);
         } else {
           setProfile(null);
+          setRole(null);
+          setRoles([]);
         }
       }
     );
@@ -48,9 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       
       if (session?.user) {
-        fetchProfile(session.user.id);
+        fetchProfile(session.user.id).then(() => setLoading(false));
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -67,15 +72,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(data);
     }
 
-    // Fetch user role
-    const { data: roleData } = await supabase
+    // Fetch user roles (all)
+    const { data: rolesData } = await supabase
       .from("user_roles")
       .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
+      .eq("user_id", userId);
 
-    if (roleData) {
-      setRole(roleData.role);
+    if (rolesData && rolesData.length > 0) {
+      setRoles(rolesData.map(r => r.role));
+      setRole(rolesData[0].role);
     }
   };
 
@@ -85,10 +90,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(null);
     setProfile(null);
     setRole(null);
+    setRoles([]);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, profile, role, loading, signOut }}>
+    <AuthContext.Provider value={{ user, session, profile, role, roles, loading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
