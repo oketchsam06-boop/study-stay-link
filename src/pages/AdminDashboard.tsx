@@ -66,10 +66,11 @@ export default function AdminDashboard() {
   }, [user, roles, authLoading]);
 
   const fetchBookings = async () => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("bookings")
       .select("*, hostels(name, landlord_id), rooms(room_number), profiles!bookings_student_id_fkey(full_name, email, phone)")
       .order("booked_at", { ascending: false });
+    console.log("Admin bookings fetch:", { count: data?.length, error });
     if (data) setBookings(data as BookingRow[]);
     setLoading(false);
   };
