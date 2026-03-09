@@ -18,7 +18,7 @@ const passwordSchema = z.string().min(6, "Password must be at least 6 characters
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(searchParams.get("signup") === "true" ? "signup" : "signin");
 
@@ -36,10 +36,10 @@ export default function Auth() {
   const [signinPassword, setSigninPassword] = useState("");
 
   useEffect(() => {
-    if (user) {
+    if (user && !authLoading) {
       navigate("/hostels");
     }
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
