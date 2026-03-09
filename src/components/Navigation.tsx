@@ -12,8 +12,12 @@ export default function Navigation() {
 
   const handleSignOut = async () => {
     setOpen(false);
-    await signOut();
-    navigate("/");
+    try {
+      await signOut();
+    } catch (e) {
+      console.error("Sign out failed:", e);
+    }
+    navigate("/auth");
   };
 
   const navItems = user ? (

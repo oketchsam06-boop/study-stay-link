@@ -36,10 +36,10 @@ export default function Auth() {
   const [signinPassword, setSigninPassword] = useState("");
 
   useEffect(() => {
-    if (user) {
+    if (user && !loading) {
       navigate("/hostels");
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
