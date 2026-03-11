@@ -96,14 +96,20 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      // Validate inputs
       const validatedEmail = emailSchema.parse(signinEmail);
       const validatedPassword = passwordSchema.parse(signinPassword);
 
-      const { error } = await supabase.auth.signInWithPassword({
+      // Add a timeout to prevent hanging forever
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("Request timed out")), 15000)
+      );
+
+      const signInPromise = supabase.auth.signInWithPassword({
         email: validatedEmail,
         password: validatedPassword,
       });
+
+      const { error } = await Promise.race([signInPromise, timeoutPromise]);
 
       if (error) {
         if (error.message.includes("Invalid")) {
@@ -118,6 +124,8 @@ export default function Auth() {
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
+      } else if (error instanceof Error && (error.message.includes("fetch") || error.message.includes("timed out"))) {
+        toast.error("Network error. Please check your connection and try again.");
       } else {
         toast.error("An error occurred during sign in");
       }
