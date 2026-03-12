@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      async (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         
@@ -61,25 +61,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
+    try {
+      const [{ data: profileData, error: profileError }, { data: rolesData, error: rolesError }] = await Promise.all([
+        supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle(),
+        supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", userId),
+      ]);
 
-    if (data && !error) {
-      setProfile(data);
-    }
+      if (profileError) {
+        console.error("Failed to fetch profile:", profileError);
+      }
+      setProfile(profileData ?? null);
 
-    // Fetch user roles (all)
-    const { data: rolesData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+      if (rolesError) {
+        console.error("Failed to fetch user roles:", rolesError);
+        setRoles([]);
+        setRole(null);
+        return;
+      }
 
-    if (rolesData && rolesData.length > 0) {
-      setRoles(rolesData.map(r => r.role));
-      setRole(rolesData[0].role);
+      if (rolesData && rolesData.length > 0) {
+        const mappedRoles = rolesData.map((r) => r.role);
+        setRoles(mappedRoles);
+        setRole(mappedRoles[0]);
+      } else {
+        setRoles([]);
+        setRole(null);
+      }
+    } catch (error) {
+      console.error("Unexpected profile fetch error:", error);
+      setProfile(null);
+      setRoles([]);
+      setRole(null);
     }
   };
 
