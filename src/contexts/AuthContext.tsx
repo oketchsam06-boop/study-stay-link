@@ -5,6 +5,7 @@ import type { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type UserRole = Database["public"]["Tables"]["user_roles"]["Row"];
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 interface AuthContextType {
   user: User | null;
@@ -15,6 +16,11 @@ interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
 }
+
+const ROLE_PRIORITY: AppRole[] = ["admin", "landlord", "student"];
+
+const isAppRole = (value: unknown): value is AppRole =>
+  typeof value === "string" && ["student", "landlord", "admin"].includes(value);
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -27,40 +33,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        
-        if (session?.user) {
-          setLoading(true);
-          await fetchProfile(session.user.id);
-          setLoading(false);
-        } else {
-          setProfile(null);
-          setRole(null);
-          setRoles([]);
-          setLoading(false);
-        }
-      }
-    );
+    let isMounted = true;
+    let profileRequestId = 0;
 
-    // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      }
+    const resetAuthState = () => {
+      setProfile(null);
+      setRole(null);
+      setRoles([]);
       setLoading(false);
+    };
+
+    const syncUserContext = (nextSession: Session | null) => {
+      if (!isMounted) return;
+
+      setSession(nextSession);
+      setUser(nextSession?.user ?? null);
+
+      if (!nextSession?.user) {
+        resetAuthState();
+        return;
+      }
+
+      setLoading(true);
+      const currentRequestId = ++profileRequestId;
+
+      void fetchProfile(nextSession.user.id, nextSession.user.user_metadata?.role).finally(() => {
+        if (!isMounted || currentRequestId !== profileRequestId) return;
+        setLoading(false);
+      });
+    };
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      syncUserContext(nextSession);
     });
 
-    return () => subscription.unsubscribe();
+    void supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      syncUserContext(initialSession);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const fetchProfile = async (userId: string) => {
+  const fetchProfile = async (userId: string, fallbackRole?: unknown) => {
+    const metadataRole = isAppRole(fallbackRole) ? fallbackRole : null;
+
     try {
       const [{ data: profileData, error: profileError }, { data: rolesData, error: rolesError }] = await Promise.all([
         supabase
@@ -81,24 +100,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (rolesError) {
         console.error("Failed to fetch user roles:", rolesError);
-        setRoles([]);
-        setRole(null);
+        setRoles(metadataRole ? [metadataRole] : []);
+        setRole(metadataRole);
         return;
       }
 
       if (rolesData && rolesData.length > 0) {
-        const mappedRoles = rolesData.map((r) => r.role);
+        const mappedRoles = rolesData.map((r: UserRole) => r.role);
+        const primaryRole = ROLE_PRIORITY.find((r) => mappedRoles.includes(r)) ?? mappedRoles[0] ?? null;
         setRoles(mappedRoles);
-        setRole(mappedRoles[0]);
-      } else {
-        setRoles([]);
-        setRole(null);
+        setRole(primaryRole);
+        return;
       }
+
+      setRoles(metadataRole ? [metadataRole] : []);
+      setRole(metadataRole);
     } catch (error) {
       console.error("Unexpected profile fetch error:", error);
       setProfile(null);
-      setRoles([]);
-      setRole(null);
+      setRoles(metadataRole ? [metadataRole] : []);
+      setRole(metadataRole);
     }
   };
 
@@ -130,3 +151,4 @@ export function useAuth() {
   }
   return context;
 }
+
