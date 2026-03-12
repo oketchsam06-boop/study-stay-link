@@ -38,40 +38,78 @@ const escrowColors: Record<string, string> = {
 };
 
 export default function LandlordDashboard() {
-  const { user, role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [hostels, setHostels] = useState<Hostel[]>([]);
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!user) { navigate("/auth"); return; }
-    if (role !== "landlord") { navigate("/student/dashboard"); return; }
-    fetchData();
+    if (authLoading) return;
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    if (!role) {
+      navigate("/hostels");
+      return;
+    }
+    if (role !== "landlord") {
+      navigate(role === "admin" ? "/admin/dashboard" : "/student/dashboard");
+      return;
+    }
+
+    void fetchData();
 
     // Real-time booking notifications
     const channel = supabase
       .channel("landlord-bookings")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "bookings" }, (payload) => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "bookings" }, () => {
         toast.info("📱 New booking received!");
-        fetchData();
+        void fetchData();
       })
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [user, role]);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, role, authLoading, navigate]);
 
   const fetchData = async () => {
-    const [hostelsRes, bookingsRes] = await Promise.all([
-      supabase.from("hostels").select("*").eq("landlord_id", user?.id).order("created_at", { ascending: false }),
-      supabase.from("bookings")
+    setLoading(true);
+
+    try {
+      const { data: hostelsData, error: hostelsError } = await supabase
+        .from("hostels")
+        .select("*")
+        .eq("landlord_id", user?.id)
+        .order("created_at", { ascending: false });
+
+      if (hostelsError) throw hostelsError;
+
+      const hostelRows = hostelsData ?? [];
+      setHostels(hostelRows);
+
+      const hostelIds = hostelRows.map((hostel) => hostel.id);
+      if (hostelIds.length === 0) {
+        setBookings([]);
+        return;
+      }
+
+      const { data: bookingsData, error: bookingsError } = await supabase
+        .from("bookings")
         .select("*, hostels(name), rooms(room_number), profiles(full_name, email, phone)")
-        .in("hostel_id", (await supabase.from("hostels").select("id").eq("landlord_id", user?.id!)).data?.map((h) => h.id) || [])
-        .order("booked_at", { ascending: false }),
-    ]);
-    if (hostelsRes.data) setHostels(hostelsRes.data);
-    if (bookingsRes.data) setBookings(bookingsRes.data as BookingRow[]);
-    setLoading(false);
+        .in("hostel_id", hostelIds)
+        .order("booked_at", { ascending: false });
+
+      if (bookingsError) throw bookingsError;
+      setBookings((bookingsData as BookingRow[]) ?? []);
+    } catch (error) {
+      console.error("Failed to load landlord dashboard:", error);
+      toast.error("Failed to load dashboard data. Please refresh.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async (id: string) => {

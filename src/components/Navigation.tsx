@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Building2, LogOut, Home, LayoutDashboard, Menu, X, Shield } from "lucide-react";
+import { Building2, LogOut, Home, LayoutDashboard, Menu, Shield } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 
 export default function Navigation() {
-  const { user, role, signOut } = useAuth();
+  const { user, role, roles, loading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -17,6 +17,16 @@ export default function Navigation() {
     signOut().catch((e) => console.error("Sign out failed:", e));
   };
 
+  const dashboardRole = authLoading
+    ? null
+    : role ?? (roles.includes("admin") ? "admin" : roles.includes("landlord") ? "landlord" : roles.includes("student") ? "student" : null);
+
+  const dashboardPath = dashboardRole === "admin"
+    ? "/admin/dashboard"
+    : dashboardRole === "landlord"
+      ? "/landlord/dashboard"
+      : "/student/dashboard";
+
   const navItems = user ? (
     <>
       <Link to="/hostels" onClick={() => setOpen(false)}>
@@ -25,9 +35,9 @@ export default function Navigation() {
           Browse Hostels
         </Button>
       </Link>
-      <Link to={role === "admin" ? "/admin/dashboard" : role === "landlord" ? "/landlord/dashboard" : "/student/dashboard"} onClick={() => setOpen(false)}>
+      <Link to={dashboardPath} onClick={() => setOpen(false)}>
         <Button variant="ghost" size="sm" className="w-full justify-start">
-          {role === "admin" ? <Shield className="mr-2 h-4 w-4" /> : <LayoutDashboard className="mr-2 h-4 w-4" />}
+          {dashboardRole === "admin" ? <Shield className="mr-2 h-4 w-4" /> : <LayoutDashboard className="mr-2 h-4 w-4" />}
           Dashboard
         </Button>
       </Link>

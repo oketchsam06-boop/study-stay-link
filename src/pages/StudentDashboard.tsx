@@ -59,7 +59,7 @@ const escrowBadge: Record<string, { label: string; className: string }> = {
 };
 
 export default function StudentDashboard() {
-  const { user, role } = useAuth();
+  const { user, role, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<BookingRow[]>([]);
   const [receipts, setReceipts] = useState<ReceiptRow[]>([]);
@@ -68,27 +68,49 @@ export default function StudentDashboard() {
   const [disputeText, setDisputeText] = useState("");
 
   useEffect(() => {
-    if (!user) { navigate("/auth"); return; }
-    if (role !== "student") { navigate("/landlord/dashboard"); return; }
-    fetchData();
-  }, [user, role]);
+    if (authLoading) return;
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
+    if (!role) {
+      navigate("/hostels");
+      return;
+    }
+    if (role !== "student") {
+      navigate(role === "admin" ? "/admin/dashboard" : "/landlord/dashboard");
+      return;
+    }
+    void fetchData();
+  }, [user, role, authLoading, navigate]);
 
   const fetchData = async () => {
-    const [bookingsRes, receiptsRes] = await Promise.all([
-      supabase
-        .from("bookings")
-        .select("*, hostels(name, location, images, rent_per_month), rooms(room_number, price_per_month)")
-        .eq("student_id", user?.id)
-        .order("booked_at", { ascending: false }),
-      supabase
-        .from("receipts")
-        .select("*")
-        .eq("student_id", user?.id)
-        .order("issued_at", { ascending: false }),
-    ]);
-    if (bookingsRes.data) setBookings(bookingsRes.data as BookingRow[]);
-    if (receiptsRes.data) setReceipts(receiptsRes.data as ReceiptRow[]);
-    setLoading(false);
+    setLoading(true);
+    try {
+      const [bookingsRes, receiptsRes] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("*, hostels(name, location, images, rent_per_month), rooms(room_number, price_per_month)")
+          .eq("student_id", user?.id)
+          .order("booked_at", { ascending: false }),
+        supabase
+          .from("receipts")
+          .select("*")
+          .eq("student_id", user?.id)
+          .order("issued_at", { ascending: false }),
+      ]);
+
+      if (bookingsRes.error) throw bookingsRes.error;
+      if (receiptsRes.error) throw receiptsRes.error;
+
+      if (bookingsRes.data) setBookings(bookingsRes.data as BookingRow[]);
+      if (receiptsRes.data) setReceipts(receiptsRes.data as ReceiptRow[]);
+    } catch (error) {
+      console.error("Failed to load student dashboard:", error);
+      toast.error("Failed to load dashboard data. Please refresh.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleConfirmRoom = async (bookingId: string) => {
