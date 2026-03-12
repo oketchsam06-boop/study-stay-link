@@ -96,36 +96,38 @@ export default function Auth() {
     setLoading(true);
 
     try {
-      const validatedEmail = emailSchema.parse(signinEmail);
+      const validatedEmail = emailSchema.parse(signinEmail.trim());
       const validatedPassword = passwordSchema.parse(signinPassword);
 
-      // Add a timeout to prevent hanging forever
-      const timeoutPromise = new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("Request timed out")), 15000)
-      );
-
-      const signInPromise = supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: validatedEmail,
         password: validatedPassword,
       });
 
-      const { error } = await Promise.race([signInPromise, timeoutPromise]);
-
       if (error) {
-        if (error.message.includes("Invalid")) {
+        const message = error.message.toLowerCase();
+        if (message.includes("invalid login credentials") || message.includes("invalid")) {
           toast.error("Invalid email or password");
+        } else if (message.includes("email not confirmed")) {
+          toast.error("Please verify your email before signing in.");
         } else {
           toast.error(error.message);
         }
-      } else {
-        toast.success("Signed in successfully!");
-        navigate("/hostels");
+        return;
       }
+
+      if (!data.session) {
+        toast.error("Sign in failed. Please try again.");
+        return;
+      }
+
+      toast.success("Signed in successfully!");
+      navigate("/hostels");
     } catch (error) {
       if (error instanceof z.ZodError) {
         toast.error(error.errors[0].message);
-      } else if (error instanceof Error && (error.message.includes("fetch") || error.message.includes("timed out"))) {
-        toast.error("Network error. Please check your connection and try again.");
+      } else if (error instanceof Error && error.message.toLowerCase().includes("fetch")) {
+        toast.error("Couldn't reach the server. Please try again.");
       } else {
         toast.error("An error occurred during sign in");
       }
