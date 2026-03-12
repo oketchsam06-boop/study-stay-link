@@ -107,7 +107,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (rolesData && rolesData.length > 0) {
         const mappedRoles = rolesData.map((r: UserRole) => r.role);
-        const primaryRole = ROLE_PRIORITY.find((r) => mappedRoles.includes(r)) ?? mappedRoles[0] ?? null;
+        const primaryRole = (metadataRole && mappedRoles.includes(metadataRole)
+          ? metadataRole
+          : ROLE_PRIORITY.find((r) => mappedRoles.includes(r))) ?? mappedRoles[0] ?? null;
         setRoles(mappedRoles);
         setRole(primaryRole);
         return;
