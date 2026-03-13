@@ -292,8 +292,26 @@ export default function Auth() {
                       Landlord - Want to list my hostel
                     </Label>
                   </div>
-                </RadioGroup>
+              </RadioGroup>
               </div>
+
+              {role === "student" && (
+                <div className="space-y-2">
+                  <Label htmlFor="university">University</Label>
+                  <Select value={university} onValueChange={setUniversity}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your university" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {KENYAN_UNIVERSITIES.map((uni) => (
+                        <SelectItem key={uni} value={uni}>
+                          {uni}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
               <Button type="submit" variant="hero" className="w-full" disabled={loading}>
                 {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
