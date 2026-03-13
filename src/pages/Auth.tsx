@@ -6,11 +6,45 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Building2, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { z } from "zod";
+
+const KENYAN_UNIVERSITIES = [
+  "University of Nairobi (UoN)",
+  "Kenyatta University (KU)",
+  "Jomo Kenyatta University of Agriculture and Technology (JKUAT)",
+  "Moi University",
+  "Egerton University",
+  "Maseno University",
+  "Dedan Kimathi University of Technology",
+  "Machakos University",
+  "Karatina University",
+  "Laikipia University",
+  "Chuka University",
+  "Kisii University",
+  "Multimedia University of Kenya",
+  "Technical University of Kenya (TUK)",
+  "Technical University of Mombasa (TUM)",
+  "Masinde Muliro University of Science and Technology",
+  "University of Eldoret",
+  "South Eastern Kenya University (SEKU)",
+  "Kibabii University",
+  "Co-operative University of Kenya",
+  "Murang'a University of Technology",
+  "Strathmore University",
+  "Mount Kenya University",
+  "Daystar University",
+  "KCA University",
+  "United States International University (USIU-Africa)",
+  "Africa Nazarene University",
+  "St. Paul's University",
+  "Zetech University",
+  "Riara University",
+];
 
 const emailSchema = z.string().email("Invalid email address");
 const passwordSchema = z.string().min(6, "Password must be at least 6 characters");
