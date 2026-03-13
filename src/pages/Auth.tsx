@@ -107,6 +107,7 @@ export default function Auth() {
           data: {
             full_name: fullName,
             role: role,
+            university: role === "student" ? university : null,
           },
         },
       });
