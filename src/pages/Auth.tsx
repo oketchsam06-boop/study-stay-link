@@ -91,6 +91,12 @@ export default function Auth() {
         return;
       }
 
+      if (role === "student" && !university) {
+        toast.error("Please select your university");
+        setLoading(false);
+        return;
+      }
+
       const redirectUrl = `${window.location.origin}/`;
 
       const { error } = await supabase.auth.signUp({
