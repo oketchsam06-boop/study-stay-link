@@ -64,6 +64,7 @@ export default function Auth() {
   const [role, setRole] = useState<"student" | "landlord">(
     searchParams.get("role") === "landlord" ? "landlord" : "student"
   );
+  const [university, setUniversity] = useState("");
 
   // Sign In Form
   const [signinEmail, setSigninEmail] = useState("");
