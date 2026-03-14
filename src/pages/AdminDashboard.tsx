@@ -78,33 +78,11 @@ export default function AdminDashboard() {
   const handleResolveRelease = async (booking: BookingRow) => {
     setActionId(booking.id);
     try {
-      // Release deposit to landlord wallet
-      const landlordId = booking.hostels?.landlord_id;
-      if (!landlordId) throw new Error("Landlord not found");
-
-      // Update booking
-      await supabase.from("bookings").update({
-        escrow_status: "released_to_landlord",
-        admin_resolution: resolutionNote || "Admin released deposit to landlord",
-        confirmed_at: new Date().toISOString(),
-      }).eq("id", booking.id);
-
-      // Credit landlord wallet
-      let { data: wallet } = await supabase.from("wallets").select("id, balance, total_earned").eq("landlord_id", landlordId).maybeSingle();
-      if (!wallet) {
-        const { data: created } = await supabase.from("wallets").insert({ landlord_id: landlordId }).select("id, balance, total_earned").single();
-        wallet = created;
-      }
-      if (wallet) {
-        await supabase.from("wallet_transactions").insert({
-          wallet_id: wallet.id, booking_id: booking.id, type: "dispute_release",
-          amount: booking.deposit_amount, description: `Dispute resolved — deposit released`,
-        });
-        await supabase.from("wallets").update({
-          balance: wallet.balance + booking.deposit_amount,
-          total_earned: wallet.total_earned + booking.deposit_amount,
-        }).eq("id", wallet.id);
-      }
+      const { error } = await supabase.rpc("admin_release_booking", {
+        _booking_id: booking.id,
+        _resolution: resolutionNote || "Admin released deposit to landlord",
+      });
+      if (error) throw error;
 
       toast.success("Deposit released to landlord");
       setResolutionNote("");
@@ -116,16 +94,11 @@ export default function AdminDashboard() {
   const handleResolveRefund = async (booking: BookingRow) => {
     setActionId(booking.id);
     try {
-      await supabase.from("bookings").update({
-        escrow_status: "refunded_to_student",
-        admin_resolution: resolutionNote || "Admin refunded deposit to student",
-        cancelled_at: new Date().toISOString(),
-      }).eq("id", booking.id);
-
-      // Re-mark room as vacant
-      if (booking.room_id) {
-        await supabase.from("rooms").update({ is_vacant: true }).eq("id", booking.room_id);
-      }
+      const { error } = await supabase.rpc("admin_refund_booking", {
+        _booking_id: booking.id,
+        _resolution: resolutionNote || "Admin refunded deposit to student",
+      });
+      if (error) throw error;
 
       toast.success("Deposit refunded to student");
       setResolutionNote("");
