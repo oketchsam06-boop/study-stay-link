@@ -410,6 +410,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_refund_booking: {
+        Args: { _booking_id: string; _resolution?: string }
+        Returns: undefined
+      }
+      admin_release_booking: {
+        Args: { _booking_id: string; _resolution?: string }
+        Returns: undefined
+      }
+      confirm_booking: { Args: { _booking_id: string }; Returns: undefined }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["app_role"]
